@@ -423,6 +423,7 @@ def buildOPF(dstdir, title, filelist, cover=None):
 
 
 def buildEPUB(path, chapternames, tomenumber):
+    first_image_pattern = re.compile(r'^kcc-0000.*')
     filelist = []
     chapterlist = []
     cover = None
@@ -507,14 +508,18 @@ def buildEPUB(path, chapternames, tomenumber):
         dirnames, filenames = walkSort(dirnames, filenames)
         for afile in filenames:
             filelist.append(buildHTML(dirpath, afile, os.path.join(dirpath, afile)))
-            if not chapter:
-                chapterlist.append((dirpath.replace('Images', 'Text'), filelist[-1][1]))
-                chapter = True
             if cover is None:
                 cover = os.path.join(os.path.join(path, 'OEBPS', 'Images'),
-                                     'cover' + getImageFileName(filelist[-1][1])[1])
+                                    'cover' + getImageFileName(filelist[-1][1])[1])
                 options.covers.append((image.Cover(os.path.join(filelist[-1][0], filelist[-1][1]), cover, options,
-                                                   tomenumber), options.uuid))
+                                                tomenumber), options.uuid))
+            if not chapter:
+                if bool(first_image_pattern.match(filelist[-1][1])):
+                    os.remove(os.path.join(filelist[-1][0], filelist[-1][1]))
+                    filelist.pop()
+                else:
+                    chapterlist.append((dirpath.replace('Images', 'Text'), filelist[-1][1]))
+                    chapter = True
     # Overwrite chapternames if tree is flat and ComicInfo.xml has bookmarks
     if not chapternames and options.chapters:
         chapterlist = []
